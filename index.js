@@ -21,7 +21,7 @@ const displayOptions = async () => {
             type: 'list',
             message: 'What would you like to do?',
             name: 'choice',
-            choices: ['View All Employees', 'Add Employee', "Update Employee's Role", "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Update Department', 'Exit']
+            choices: ['View All Employees', 'View Employees by Manager', 'View Employees by Department', 'Add Employee', "Update Employee's Role", "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Update Department', 'Exit']
         }
     ]
     );
@@ -42,6 +42,48 @@ async function queryDatabase(choice) {
                  INNER JOIN roles ON e.role_id = roles.id
                  INNER JOIN departments ON roles.department_id = departments.id
                  LEFT JOIN employees AS m ON e.manager_id = m.id`);
+            break;
+
+        case 'View Employees by Department':
+            response = await pool.query(`SELECT * from departments`);
+            // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
+            departments = response.rows.map((item) => ({ value: item.id, name: item.name }));
+            response = await inquirer.prompt([
+                {
+                    type: 'list',
+                    message: 'Choose a Department',
+                    name: 'departmentId',
+                    choices: departments
+                }
+            ]);
+            response = await pool.query(
+                `SELECT e.id, e.first_name, e.last_name, title, departments.name AS department, salary, m.first_name || ' ' || m.last_name AS manager
+                    FROM employees AS e
+                    INNER JOIN roles ON e.role_id = roles.id
+                    INNER JOIN departments ON roles.department_id = departments.id
+                    LEFT JOIN employees AS m ON e.manager_id = m.id 
+                    WHERE roles.department_id = $1`, [response.departmentId]);
+            break;
+
+        case 'View Employees by Manager':
+            response = await pool.query(`SELECT * from employees`);
+            // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
+            employees = response.rows.map((item) => ({ value: item.id, name: item.first_name + ' ' + item.last_name }));
+            response = await inquirer.prompt([
+                {
+                    type: 'list',
+                    message: 'Choose a Manager',
+                    name: 'managerId',
+                    choices: employees
+                }
+            ]);
+            response = await pool.query(
+                `SELECT e.id, e.first_name, e.last_name, title, departments.name AS department, salary, m.first_name || ' ' || m.last_name AS manager
+                    FROM employees AS e
+                    INNER JOIN roles ON e.role_id = roles.id
+                    INNER JOIN departments ON roles.department_id = departments.id
+                    LEFT JOIN employees AS m ON e.manager_id = m.id 
+                    WHERE e.manager_id = $1`, [response.managerId]);
             break;
 
         case 'View All Roles':
