@@ -98,7 +98,6 @@ async function queryDatabase(choice) {
             break;
 
         case 'View Total Utilized Budget of Department':
-            console.log('Hello');
             response = await pool.query(`SELECT * from departments`);
             // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
             departments = response.rows.map((item) => ({ value: item.id, name: item.name }));
