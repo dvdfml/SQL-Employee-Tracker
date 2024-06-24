@@ -12,7 +12,6 @@ const pool = new Pool(
         host: 'localhost',
         database: 'employees_db'
     },
-    console.log(`Connected to the employees_db database.`)
 )
 
 const displayOptions = async () => {
@@ -24,8 +23,7 @@ const displayOptions = async () => {
             choices: ['View All Employees', 'View Employees by Manager',
                 'View Employees by Department', 'Add Employee', "Update Employee's Role",
                 "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments',
-                'View Total Utilized Budget of Department', 'Add Department', 'Update Department',
-                'Exit']
+                'View Total Utilized Budget of Department', 'Add Department', 'Exit']
         }
     ]
     );
@@ -235,9 +233,9 @@ async function queryDatabase(choice) {
             console.log("Updated employee's manager");
             return displayOptions();
 
-
         case 'Exit':
-            return console.log('Goodbye!');
+            console.log('Goodbye!')
+            return process.exit('0');
     }
     table(response.rows);
     return displayOptions();
