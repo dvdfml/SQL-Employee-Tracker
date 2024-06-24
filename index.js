@@ -21,7 +21,7 @@ const displayOptions = async () => {
             type: 'list',
             message: 'What would you like to do?',
             name: 'choice',
-            choices: ['View All Employees', 'Add Employee', 'Update Employee Role', 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Update Department', 'Exit']
+            choices: ['View All Employees', 'Add Employee', "Update Employee's Role", "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Update Department', 'Exit']
         }
     ]
     );
@@ -29,12 +29,14 @@ const displayOptions = async () => {
 }
 
 async function queryDatabase(choice) {
-    let result = {};
     let response = {};
-    // let rows = {};
+    let departments = {};
+    let roles = {};
+    let employees = {};
+
     switch (choice) {
         case 'View All Employees':
-            result = await pool.query(
+            response = await pool.query(
                 `SELECT e.id, e.first_name, e.last_name, title, departments.name AS department, salary, m.first_name || ' ' || m.last_name AS manager
                  FROM employees AS e
                  INNER JOIN roles ON e.role_id = roles.id
@@ -43,12 +45,12 @@ async function queryDatabase(choice) {
             break;
 
         case 'View All Roles':
-            result = await pool.query(`SELECT roles.id, title, name AS department, salary FROM roles 
+            response = await pool.query(`SELECT roles.id, title, name AS department, salary FROM roles 
                 INNER JOIN departments ON roles.department_id = departments.id`);
             break;
 
         case 'View All Departments':
-            result = await pool.query(`SELECT * FROM departments`);
+            response = await pool.query(`SELECT * FROM departments`);
             break;
 
         case 'Add Department':
@@ -60,7 +62,6 @@ async function queryDatabase(choice) {
                 }
             ]);
             await pool.query(`INSERT INTO departments (name) VALUES ($1)`, [response.name]);
-            // console.log(result);
             console.log(`Added ${response.name} to the database`);
             return displayOptions();
 
@@ -68,7 +69,7 @@ async function queryDatabase(choice) {
 
             response = await pool.query(`SELECT * from departments`);
             // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
-            response.rows = response.rows.map((item) => ({ value: item.id, name: item.name }));
+            departments = response.rows.map((item) => ({ value: item.id, name: item.name }));
             response = await inquirer.prompt([
                 {
                     type: 'input',
@@ -84,7 +85,7 @@ async function queryDatabase(choice) {
                     type: 'list',
                     message: 'Which department does the role belong to?',
                     name: 'departmentId',
-                    choices: response.rows
+                    choices: departments
                 }
             ]);
             await pool.query(`INSERT INTO roles (title, department_id, salary) VALUES ($1,$2,$3)`, [response.name, response.departmentId, response.salary]);
@@ -94,9 +95,9 @@ async function queryDatabase(choice) {
         case 'Add Employee':
             response = await pool.query(`SELECT * from roles`);
             // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
-            const roles = response.rows.map((item) => ({ value: item.id, name: item.title }));
+            roles = response.rows.map((item) => ({ value: item.id, name: item.title }));
             response = await pool.query(`SELECT * from employees`);
-            const employees = response.rows.map((item) => ({ value: item.id, name: item.first_name + ' ' + item.last_name }));
+            employees = response.rows.map((item) => ({ value: item.id, name: item.first_name + ' ' + item.last_name }));
 
             response = await inquirer.prompt([
                 {
@@ -126,10 +127,55 @@ async function queryDatabase(choice) {
             console.log(`Added ${response.firstName} ${response.lastName} to the database`);
             return displayOptions();
 
+        case "Update Employee's Role":
+            response = await pool.query(`SELECT * from employees`);
+            employees = response.rows.map((item) => ({ value: item.id, name: item.first_name + ' ' + item.last_name }));
+            response = await pool.query(`SELECT * from roles`);
+            roles = response.rows.map((item) => ({ value: item.id, name: item.title }));
+            response = await inquirer.prompt([
+                {
+                    type: 'list',
+                    message: "Whose role do you want to update?",
+                    name: 'employeeId',
+                    choices: employees
+                },
+                {
+                    type: 'list',
+                    message: "What role do you want to assign the selected employee?",
+                    name: 'roleId',
+                    choices: roles
+                }
+            ]);
+            await pool.query(`UPDATE employees SET role_id = $1 WHERE id = $2`, [response.roleId, response.employeeId]);
+            console.log("Updated employee's role");
+            return displayOptions();
+
+        case "Update Employee's Manager":
+            response = await pool.query(`SELECT * from employees`);
+            employees = response.rows.map((item) => ({ value: item.id, name: item.first_name + ' ' + item.last_name }));
+            response = await inquirer.prompt([
+                {
+                    type: 'list',
+                    message: "Whose manager do you want to update?",
+                    name: 'employeeId',
+                    choices: employees
+                },
+                {
+                    type: 'list',
+                    message: "Which manager do you want to assign the selected employee?",
+                    name: 'managerId',
+                    choices: employees
+                }
+            ]);
+            await pool.query(`UPDATE employees SET manager_id = $1 WHERE id = $2`, [response.managerId, response.employeeId]);
+            console.log("Updated employee's manager");
+            return displayOptions();
+
+
         case 'Exit':
             return console.log('Goodbye!');
     }
-    table(result.rows);
+    table(response.rows);
     return displayOptions();
 }
 
