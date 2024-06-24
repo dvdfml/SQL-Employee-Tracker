@@ -66,4 +66,4 @@ If the application was initiated succesfully, ASCII art with the application nam
 Use the arrow keys to move between options and select them with the enter Key.
 
 ## Demo
-[Video]
+[Video](https://drive.google.com/file/d/1aJOHpuvR3qWE4ILQuX80Pabpo_cwbzVR/view?usp=sharing)
