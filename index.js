@@ -21,7 +21,11 @@ const displayOptions = async () => {
             type: 'list',
             message: 'What would you like to do?',
             name: 'choice',
-            choices: ['View All Employees', 'View Employees by Manager', 'View Employees by Department', 'Add Employee', "Update Employee's Role", "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Update Department', 'Exit']
+            choices: ['View All Employees', 'View Employees by Manager',
+                'View Employees by Department', 'Add Employee', "Update Employee's Role",
+                "Update Employee's Manager", 'View All Roles', 'Add Role', 'View All Departments',
+                'View Total Utilized Budget of Department', 'Add Department', 'Update Department',
+                'Exit']
         }
     ]
     );
@@ -93,6 +97,24 @@ async function queryDatabase(choice) {
 
         case 'View All Departments':
             response = await pool.query(`SELECT * FROM departments`);
+            break;
+
+        case 'View Total Utilized Budget of Department':
+            console.log('Hello');
+            response = await pool.query(`SELECT * from departments`);
+            // Map the rows array to match the object keys of value and name in the choices array of Inquirer.prompt 
+            departments = response.rows.map((item) => ({ value: item.id, name: item.name }));
+            response = await inquirer.prompt([
+                {
+                    type: 'list',
+                    message: 'Choose a Department',
+                    name: 'departmentId',
+                    choices: departments
+                }
+            ]);
+            response = await pool.query(`SELECT COUNT(employees.id) AS num_of_employees, SUM(roles.salary) AS total_utilized_budget
+                FROM employees, roles
+                WHERE employees.role_id = roles.id AND roles.department_id = $1`, [response.departmentId]);
             break;
 
         case 'Add Department':
